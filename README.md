@@ -13,10 +13,10 @@ $ go get -u github.com/o1egl/syncx
 ```
 
 ## Usage
-* [AdwancedWaitGroup](#AdwancedWaitGroup)
+* [AdwancedWaitGroup](#adwancedwaitgroup)
 * [Semaphore](#semaphore)
 
-#### AdwancedWaitGroup
+### AdwancedWaitGroup
 
 AWG -  advanced version of wait group
 
@@ -86,7 +86,7 @@ Integrated with context.Context. It gives you ability to set timeouts and regist
 ```
 
 
-#### Semaphore
+### Semaphore
 
 ```go
     // NewSemaphore returns new Semaphore instance
