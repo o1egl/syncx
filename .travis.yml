@@ -11,7 +11,7 @@ install:
     - go get -t -v ./...
 script:
     - diff -u <(echo -n) <(gofmt -d -s $(find . -type f -name '*.go'))
-    - go test -coverprofile=semaphore.coverprofile
+    - go test -test.v -race -coverprofile=syncx.coverprofile
     - gover
     - goveralls -coverprofile=gover.coverprofile -service=travis-ci
 matrix:
