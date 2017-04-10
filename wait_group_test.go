@@ -3,13 +3,14 @@ package syncx
 import (
 	"context"
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
-var testError = errors.New("Test error")
+var errTest = errors.New("test error")
 
 func slowFunc() error {
 	time.Sleep(2 * time.Second)
@@ -23,28 +24,33 @@ func fastFunc() error {
 }
 
 func errorFunc() error {
-	return testError
+	return errTest
 }
 
 func panicFunc() error {
-	panic("Test panic")
-	return nil
+	panic("test panic")
+}
+
+func incFunc(v *int) func() error {
+	return func() error {
+		*v++
+		return nil
+	}
 }
 
 // Test_AdvancedWaitGroup_Success test for success case
 func Test_AdvancedWaitGroup_Success(t *testing.T) {
 	var wg AdvancedWaitGroup
+	var r1, r2, r3, r4 int
+	wg.Add(incFunc(&r1))
+	wg.Add(incFunc(&r2))
+	wg.Add(incFunc(&r3))
+	wg.Add(incFunc(&r4))
 
-	wg.Add(fastFunc)
-	wg.Add(fastFunc)
-	wg.Add(slowFunc)
-	wg.Add(slowFunc)
-
-	start := time.Now()
 	wg.Start()
-	diff := time.Now().Sub(start).Nanoseconds()
+	sum := r1 + r2 + r3 + r4
 
-	assert.True(t, diff >= (2*time.Second).Nanoseconds(), "AWG should wait all goroutines")
+	assert.Equal(t, 4, sum)
 	assert.Equal(t, StatusSuccess, wg.Status())
 	assert.NoError(t, wg.LastError())
 	assert.Len(t, wg.AllErrors(), 0)
@@ -54,20 +60,18 @@ func Test_AdvancedWaitGroup_Success(t *testing.T) {
 func Test_AdvancedWaitGroup_SuccessWithErrors(t *testing.T) {
 	var wg AdvancedWaitGroup
 
-	wg.Add(fastFunc)
-	wg.Add(fastFunc)
+	var r1, r2 int
 	wg.Add(errorFunc)
+	wg.Add(incFunc(&r1))
+	wg.Add(incFunc(&r2))
 	wg.Add(errorFunc)
-	wg.Add(slowFunc)
-	wg.Add(slowFunc)
 
-	start := time.Now()
 	wg.Start()
-	diff := time.Now().Sub(start).Nanoseconds()
+	sum := r1 + r2
 
-	assert.True(t, diff >= (2*time.Second).Nanoseconds(), "AWG should wait all goroutines")
+	assert.Equal(t, 2, sum)
 	assert.Equal(t, StatusSuccess, wg.Status())
-	assert.Error(t, testError, wg.LastError())
+	assert.Error(t, errTest, wg.LastError())
 	assert.Len(t, wg.AllErrors(), 2)
 }
 
@@ -122,11 +126,8 @@ func Test_AdvancedWaitGroup_DontExecCanceled(t *testing.T) {
 	var wg AdvancedWaitGroup
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
-	i := 0
-	wg.Add(func() error {
-		i++
-		return nil
-	})
+	var i int
+	wg.Add(incFunc(&i))
 
 	cancelFunc()
 
@@ -150,7 +151,7 @@ func Test_AdvancedWaitGroup_StopOnError(t *testing.T) {
 	diff := time.Now().Sub(start).Nanoseconds()
 
 	assert.True(t, diff < (time.Second).Nanoseconds(), "AWG should be canceled immediately")
-	assert.Equal(t, testError, wg.LastError())
+	assert.Equal(t, errTest, wg.LastError())
 	assert.Equal(t, StatusError, wg.Status(), "AWG status should be StatusError!")
 }
 
@@ -165,7 +166,7 @@ func Test_AdvancedWaitGroup_Panic(t *testing.T) {
 		Start()
 
 	assert.Equal(t, StatusError, wg.Status())
-	assert.Contains(t, wg.LastError().Error(), "Test panic")
+	assert.Contains(t, wg.LastError().Error(), "test panic")
 }
 
 // Test_AdvancedWaitGroup_Reset test for reset

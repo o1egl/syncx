@@ -5,6 +5,7 @@ import (
 	"errors"
 )
 
+// Semaphore defines semaphore interface
 type Semaphore interface {
 	//Acquire acquires one permit, if its not available the goroutine will block till its available or Context.Done() occurs.
 	//You can pass context.WithTimeout() to support timeoutable acquire.
@@ -30,7 +31,7 @@ type Semaphore interface {
 // NewSemaphore returns new Semaphore instance
 func NewSemaphore(permits int) (*semaphore, error) {
 	if permits < 1 {
-		return nil, errors.New("Invalid number of permits. Less than 1")
+		return nil, errors.New("invalid number of permits. Less than 1")
 	}
 	return &semaphore{
 		channel: make(chan struct{}, permits),
@@ -46,17 +47,17 @@ func (s *semaphore) Acquire(ctx context.Context) error {
 	case s.channel <- struct{}{}:
 		return nil
 	case <-ctx.Done():
-		return errors.New("Acquire canceled.")
+		return errors.New("acquire canceled")
 	}
 
 }
 
 func (s *semaphore) AcquireMany(ctx context.Context, n int) (int, error) {
 	if n < 0 {
-		return 0, errors.New("Acquir count coundn't be negative")
+		return 0, errors.New("acquir count coundn't be negative")
 	}
 	if n > s.totalPermits() {
-		return 0, errors.New("To many requested permits")
+		return 0, errors.New("too many requested permits")
 	}
 	acquired := 0
 	for ; n > 0; n-- {
@@ -65,7 +66,7 @@ func (s *semaphore) AcquireMany(ctx context.Context, n int) (int, error) {
 			acquired++
 			continue
 		case <-ctx.Done():
-			return acquired, errors.New("Acquire canceled.")
+			return acquired, errors.New("acquire canceled")
 		}
 
 	}
@@ -90,10 +91,10 @@ func (s *semaphore) Release() {
 
 func (s *semaphore) ReleaseMany(n int) error {
 	if n < 0 {
-		return errors.New("Release count coundn't be negative")
+		return errors.New("release count coundn't be negative")
 	}
 	if n > s.totalPermits() {
-		return errors.New("Too many requested releases")
+		return errors.New("too many requested releases")
 	}
 	for ; n > 0; n-- {
 		s.Release()

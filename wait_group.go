@@ -2,13 +2,13 @@ package syncx
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"runtime"
 	"sync"
 	"time"
 )
 
+// Status represents AdvancedWaitGroup status
 type Status int
 
 const (
@@ -27,11 +27,11 @@ const (
 // WaitgroupFunc func
 type WaitgroupFunc func() error
 
-// AdvancedWaitGroup enhanced wait group struct
+// AdvancedWaitGroup enhanced wait group struct. You can use it in different goroutines. It's thread safe.
 type AdvancedWaitGroup struct {
 	sync.RWMutex
 	context     context.Context
-	stack       []WaitgroupFunc
+	tasks       []WaitgroupFunc
 	stopOnError bool
 	status      Status
 	errors      []error
@@ -57,7 +57,7 @@ func (wg *AdvancedWaitGroup) SetContext(t context.Context) *AdvancedWaitGroup {
 	return wg
 }
 
-// SetStopOnError stops wiatgroup if any task returns error
+// SetStopOnError stops waitgroup if any task returns error
 func (wg *AdvancedWaitGroup) SetStopOnError(b bool) *AdvancedWaitGroup {
 	wg.Lock()
 	wg.stopOnError = b
@@ -68,7 +68,7 @@ func (wg *AdvancedWaitGroup) SetStopOnError(b bool) *AdvancedWaitGroup {
 // Add adds new tasks into waitgroup
 func (wg *AdvancedWaitGroup) Add(funcs ...WaitgroupFunc) *AdvancedWaitGroup {
 	wg.Lock()
-	wg.stack = append(wg.stack, funcs...)
+	wg.tasks = append(wg.tasks, funcs...)
 	wg.Unlock()
 	return wg
 }
@@ -79,12 +79,12 @@ func (wg *AdvancedWaitGroup) Start() *AdvancedWaitGroup {
 	defer wg.Unlock()
 	wg.status = StatusSuccess
 
-	if taskCount := len(wg.stack); taskCount > 0 {
+	if taskCount := len(wg.tasks); taskCount > 0 {
 		failed := make(chan error, taskCount)
 		done := make(chan bool, taskCount)
 
 	StarterLoop:
-		for _, f := range wg.stack {
+		for _, f := range wg.tasks {
 			// check if context is canceled
 			select {
 			case <-wg.doneChannel():
@@ -98,7 +98,7 @@ func (wg *AdvancedWaitGroup) Start() *AdvancedWaitGroup {
 					if r := recover(); r != nil {
 						buf := make([]byte, 1000)
 						runtime.Stack(buf, false)
-						failed <- errors.New(fmt.Sprintf("Panic handeled\n%v\n%s", r, string(buf)))
+						failed <- fmt.Errorf("Panic handeled\n%v\n%s", r, string(buf))
 					}
 				}()
 
@@ -146,7 +146,7 @@ func (wg *AdvancedWaitGroup) doneChannel() <-chan struct{} {
 // Reset performs cleanup task queue and reset state
 func (wg *AdvancedWaitGroup) Reset() {
 	wg.Lock()
-	wg.stack = nil
+	wg.tasks = nil
 	wg.stopOnError = false
 	wg.status = StatusIdle
 	wg.errors = nil

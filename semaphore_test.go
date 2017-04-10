@@ -2,10 +2,11 @@ package syncx
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewSemaphore(t *testing.T) {

@@ -20,8 +20,9 @@ $ go get -u github.com/o1egl/syncx
 
 AWG -  advanced version of wait group
 
-Added features: 
+Added features:
 
+* thread safe
 * integrated context.Context
 * execution timeout
 * ability to return errors
@@ -29,25 +30,25 @@ Added features:
 
 ```go
     wg := awg.AdvancedWaitGroup{}
-    	
-    // Add function one
+
+    // Add first task
     wg.Add(func() error {
     	//Logic
     	return nil
     })
-    
-    // Add function two
+
+    // Add second task
     wg.Add(func() error {
     	//Another Logic
     	return nil
     })
-    	
+
     wg.Start()
-    
+
     var err error
     // Taking one error make sense if you use *.SetStopOnError(true)* option - see below
     err = wg.SetStopOnError(true).Start().GetLastError()
-    
+
     // Taking all errors
     var errs []error
     errs = wg.Start().GetAllErrors()    
@@ -59,28 +60,28 @@ Integrated with context.Context. It gives you ability to set timeouts and regist
 ```go
     // SetTimeout defines timeout for all tasks
     SetTimeout(t time.Duration)
-    
+
     // SetContext defines Context
     SetContext(t context.Context)
-    
-    // SetStopOnError stops wiatgroup if any task returns error
+
+    // SetStopOnError stops waitgroup if any task returns error
     SetStopOnError(b bool)
-    
+
     // Add adds new tasks into waitgroup
     Add(funcs ...WaitgroupFunc)
-    
+
     // // Start runs tasks in separate goroutines and waits for their completion
     Start()
-    
+
     // Reset performs cleanup task queue and reset state
     Reset()
-    
+
     // // LastError returns last error that caught by execution process
     LastError()
-    
+
     // AllErrors returns all errors that caught by execution process
     AllErrors()
-    
+
     // Status returns result state
     Status()
 ```
@@ -91,24 +92,24 @@ Integrated with context.Context. It gives you ability to set timeouts and regist
 ```go
     // NewSemaphore returns new Semaphore instance
     NewSemaphore(10)
-    
+
     //Acquire acquires one permit, if its not available the goroutine will block till its available or Context.Done() occurs.
     //You can pass context.WithTimeout() to support timeoutable acquire.
     Acquire(ctx context.Context)
-    
+
     //AcquireMany is similar to Acquire() but for many permits
     //Returns successfully acquired permits.
     AcquireMany(ctx context.Context, n int) (int, error)
-    
+
     //Release releases one permit
     Release()
-    
+
     //ReleaseMany releases many permits
     ReleaseMany(n int) error
-    
+
     //AvailablePermits returns number of available unacquired permits
     AvailablePermits() int
-    
+
     //DrainPermits acquires all available permits and return the number of permits acquired
     DrainPermits() (int, error)
 ```
